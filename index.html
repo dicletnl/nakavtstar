@@ -1,0 +1,25 @@
+/* --- CEZA HUKUKU ANALİZİ (Yeni Modül) --- */
+if(text.includes("müşteki") || text.includes("şüpheli") || text.includes("savcılık") || text.includes("suç duyurusu")) {
+    findings++;
+    let localRisk = 60; // Ceza dosyaları hürriyeti bağladığı için risk yüksektir
+    
+    let sucTipi = "";
+    if(text.includes("hakaret")) { sucTipi = "Hakaret (TCK 125)"; localRisk += 5; }
+    if(text.includes("tehdit")) { sucTipi = "Tehdit (TCK 106)"; localRisk += 10; }
+    if(text.includes("dolandırıcılık")) { sucTipi = "Dolandırıcılık (TCK 157)"; localRisk += 20; }
+
+    totalRisk += localRisk;
+
+    html += `
+        <div class="card high" style="border-left-color: #8e44ad;">
+            <h3 style="color:#8e44ad">⚖️ Ceza Hukuku Dosyası Tespiti</h3>
+            <p><strong>Tespit Edilen Olası Suç:</strong> ${sucTipi || "Genel Suç Duyurusu"}</p>
+            <span class="section-title">Kritik Uyarılar:</span>
+            <ul>
+                <li>Şikayete tabi suçlarda 6 aylık hak düşürücü süreye dikkat edilmelidir.</li>
+                <li>Dosyanın "Uzlaştırma" kapsamında olup olmadığını kontrol edin.</li>
+                <li>İfade verme sürecinde mutlaka müdafi (avukat) yardımı talep edin.</li>
+            </ul>
+        </div>`;
+    [2, 10, 36, 38].forEach(k => anayasaKeys.add(k)); // 38. Madde: Suç ve Cezalara İlişkin Esaslar
+}
