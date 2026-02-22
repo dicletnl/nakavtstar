@@ -2,42 +2,27 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Dava Güvende AI - V5.1 Ceza Modüllü</title>
+    <title>Dava Güvende AI - V6 (Savunma & Strateji)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --success: #27ae60;
-            --purple: #8e44ad;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 40px; }
-        .container { max-width: 950px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .upload-section { background: #f8f9fa; border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
-        button { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        #result { margin-top: 30px; }
-        .card { border-left: 5px solid var(--accent); background: #fff; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 5px; }
-        
-        /* Renk Sınıfları */
-        .high { border-color: var(--danger); }
-        .medium { border-color: var(--warning); }
-        .criminal { border-color: var(--purple); }
-        
-        .risk-bar-container { background: #eee; height: 20px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
-        .risk-bar { height: 100%; transition: width 0.5s ease-in-out; }
-        .anayasa-item { background: #fdfdfd; border: 1px solid #eee; padding: 10px; margin-top: 8px; border-left: 3px solid var(--primary); font-size: 0.9em; }
+        :root { --primary: #2c3e50; --danger: #e74c3c; --warning: #f39c12; --success: #27ae60; --purple: #8e44ad; --gray: #95a5a6; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .upload-box { border: 2px dashed var(--gray); padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; background: #fafafa; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .card { padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 6px solid #ccc; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .strategy-box { background: #fffdf0; border: 1px solid #ffeeba; padding: 15px; margin-top: 10px; border-radius: 5px; }
+        .dilekce-taslagi { background: #f9f9f9; border: 1px solid #ddd; padding: 15px; font-family: 'Courier New', monospace; white-space: pre-wrap; margin-top: 15px; font-size: 13px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; color: white; font-size: 12px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚖️ Dava Güvende AI <small>v5.1 (Ceza Modülü Aktif)</small></h2>
-    <div class="upload-section">
+    <h2>⚖️ Dava Güvende AI <small>v6.0 (Savunma & Dilekçe Motoru)</small></h2>
+    <div class="upload-box">
         <input type="file" id="pdfFile" accept=".pdf">
-        <button onclick="analyzePDF()">Analiz Et</button>
+        <button onclick="analyzePDF()">Dosyayı Analiz Et ve Strateji Oluştur</button>
     </div>
     <div id="result"></div>
 </div>
@@ -47,96 +32,84 @@
 
     async function analyzePDF() {
         const file = document.getElementById("pdfFile").files[0];
-        if(!file) { alert("Lütfen PDF seçin."); return; }
-        document.getElementById("result").innerHTML = "⌛ Analiz ediliyor...";
+        if(!file) return alert("Dosya seçiniz.");
+        document.getElementById("result").innerHTML = "⌛ Derin analiz ve strateji simülasyonu yapılıyor...";
 
         const reader = new FileReader();
         reader.onload = async function() {
             const typedarray = new Uint8Array(this.result);
             const pdf = await pdfjsLib.getDocument(typedarray).promise;
-            let fullText = "";
-            for(let i=1; i<=pdf.numPages; i++) {
+            let text = "";
+            for(let i=1; i<=pdf.numPages; i++){
                 const page = await pdf.getPage(i);
                 const content = await page.getTextContent();
-                fullText += content.items.map(item => item.str.toLowerCase()).join(" ") + " ";
+                text += content.items.map(s => s.str.toLowerCase()).join(" ");
             }
-            renderAnalysis(fullText);
+            renderV6(text);
         };
         reader.readAsArrayBuffer(file);
     }
 
-    function renderAnalysis(text) {
+    function renderV6(text) {
         let html = "";
-        let totalRisk = 0;
-        let anayasaKeys = new Set();
-        let found = false;
-
-        // 1. İCRA MODÜLÜ
-        if(text.includes("icra") || text.includes("haciz") || text.includes("ödeme emri")) {
-            found = true;
-            totalRisk += 50;
-            html += `<div class="card high"><h3>🔴 İcra Analizi</h3>
-                    <p>Mali risk tespit edildi. 7 günlük itiraz süresi kritiktir.</p></div>`;
-            [2, 35, 36].forEach(k => anayasaKeys.add(k));
-        }
-
-        // 2. İŞ MODÜLÜ
-        if(text.includes("kıdem") || text.includes("ihbar") || text.includes("mesai")) {
-            found = true;
-            totalRisk += 40;
-            html += `<div class="card medium"><h3>🟠 İş Hukuku Analizi</h3>
-                    <p>İşçi alacağı veya tazminat konusu saptandı. Arabuluculuk sürecini kontrol edin.</p></div>`;
-            [49, 55].forEach(k => anayasaKeys.add(k));
-        }
-
-        // 3. CEZA MODÜLÜ (YENİ)
-        if(text.includes("şüpheli") || text.includes("savcılık") || text.includes("iddianame") || text.includes("hakaret") || text.includes("tehdit")) {
-            found = true;
-            totalRisk += 65;
-            let suc = text.includes("hakaret") ? "Hakaret" : (text.includes("tehdit") ? "Tehdit" : "Belirtilmemiş Suç");
-            
-            html += `
-                <div class="card criminal">
-                    <h3 style="color:var(--purple)">⚖️ Ceza Hukuku Analizi</h3>
-                    <p><strong>Olası Suç Türü:</strong> ${suc}</p>
-                    <ul>
-                        <li>Savcılık soruşturması veya ceza davası riski.</li>
-                        <li>Uzlaşma teklifi gelip gelmediğini kontrol edin.</li>
-                        <li>Sabıka kaydı (adli sicil) etkilenme riski yüksektir.</li>
-                    </ul>
-                </div>`;
-            [10, 36, 38].forEach(k => anayasaKeys.add(k));
-        }
-
-        if(!found) {
-            html = "<div class='card'>🔍 Belge içeriği analiz edilemedi. Farklı bir belge deneyin.</div>";
-        } else {
-            const finalScore = Math.min(totalRisk, 100);
-            const color = finalScore > 70 ? 'var(--danger)' : (finalScore > 40 ? 'var(--warning)' : 'var(--success)');
-            
-            let header = `<div class="card"><strong>Toplam Risk Skoru: %${finalScore}</strong>
-                          <div class="risk-bar-container"><div class="risk-bar" style="width:${finalScore}%; background:${color}"></div></div></div>`;
-            
-            let anayasaHtml = "<div class='card'><h3>📖 Anayasal Dayanaklar</h3>";
-            anayasaKeys.forEach(key => { anayasaHtml += `<div class="anayasa-item">${getAnayasaDetail(key)}</div>`; });
-            anayasaHtml += "</div>";
-
-            html = header + html + anayasaHtml;
-        }
-        document.getElementById("result").innerHTML = html;
-    }
-
-    function getAnayasaDetail(m) {
-        const maddeler = {
-            "2": "<strong>Madde 2:</strong> Hukuk Devleti ilkesi.",
-            "10": "<strong>Madde 10:</strong> Kanun önünde eşitlik.",
-            "35": "<strong>Madde 35:</strong> Mülkiyet hakkı.",
-            "36": "<strong>Madde 36:</strong> Hak arama özgürlüğü ve adil yargılanma.",
-            "38": "<strong>Madde 38:</strong> Suç ve cezaların kanuniliği ilkesi (Ceza Hukuku).",
-            "49": "<strong>Madde 49:</strong> Çalışma hakkı ve ödevi.",
-            "55": "<strong>Madde 55:</strong> Ücrette adalet sağlanması."
+        const tags = {
+            is: text.match(/(kıdem|ihbar|fazla mesai|işçi|hizmet|ücret|işe iade|sgk)/g),
+            icra: text.match(/(icra|haciz|ödeme emri|takip|borçlu|alacaklı)/g),
+            ceza: text.match(/(savcılık|şüpheli|müşteki|ifade|tck|suç|hakaret|tehdit)/g)
         };
-        return maddeler[m] || `Madde ${m}`;
+
+        // --- İŞ HUKUKU SAVUNMA STRATEJİSİ ---
+        if(tags.is) {
+            html += `
+            <div class="card" style="border-color: var(--warning)">
+                <span class="badge" style="background: var(--warning)">İş Hukuku Analizi</span>
+                <h3>🛡️ Davalı (İşveren) İçin Kurtulma Stratejileri</h3>
+                <div class="strategy-box">
+                    <strong>1. Zamanaşımı Def'i:</strong> İşçilik alacaklarında 5 yıllık süreyi kontrol edin. Süre geçmişse davanın reddini isteyin.<br>
+                    <strong>2. İstifa Savunması:</strong> Eğer işçi kendi çıktıysa kıdem hakkı doğmaz. "İstifa dilekçesi" veya "devamsızlık tutanağı" var mı?<br>
+                    <strong>3. Ödeme İddiası:</strong> Banka dekontlarında "maaş" veya "tazminat" açıklaması varsa mükerrer ödeme itirazı yapın.
+                </div>
+                <div class="dilekce-taslagi">
+[SAVUNMA DİLEKÇESİ TASLAĞI]
+... İŞ MAHKEMESİNE
+DOSYA NO: [Esas No Yazınız]
+CEVAP VEREN DAVALI: [Adınız/Şirket]
+KONU: Haksız açılan davanın reddi talebidir.
+ÖZET: Davacı tarafın iddiaları asılsızdır. İş akdi davacı tarafından tek taraflı feshedilmiştir. Zamanaşımı itirazımızı sunar, davanın reddini talep ederiz.
+                </div>
+            </div>`;
+        }
+
+        // --- İCRA SAVUNMA STRATEJİSİ ---
+        if(tags.icra) {
+            html += `
+            <div class="card" style="border-color: var(--danger)">
+                <span class="badge" style="background: var(--danger)">İcra/Mali Risk</span>
+                <h3>🛡️ Borçtan Sıyrılma ve Geciktirme Önerileri</h3>
+                <div class="strategy-box">
+                    <strong>1. İmzaya İtiraz:</strong> Senet veya çekteki imza size ait değilse 5 gün içinde icra mahkemesine bildirin.<br>
+                    <strong>2. Usulsüz Tebligat:</strong> Ödeme emri size ulaşmadıysa (kapıya asıldıysa vb.) öğrenme tarihinden itibaren 7 gün içinde gecikmiş itiraz yapın.<br>
+                    <strong>3. Menfi Tespit:</strong> Borçlu olmadığınızı kanıtlamak için dava açarak icrayı durdurma (teminatla) talep edin.
+                </div>
+            </div>`;
+        }
+
+        // --- CEZA SAVUNMA STRATEJİSİ ---
+        if(tags.ceza) {
+            html += `
+            <div class="card" style="border-color: var(--purple)">
+                <span class="badge" style="background: var(--purple)">Ceza Dosyası</span>
+                <h3>🛡️ Beraat ve Ceza İndirimi Yolları</h3>
+                <div class="strategy-box">
+                    <strong>1. Haksız Tahrik:</strong> Hakaret veya tehdit karşı tarafın kışkırtmasıyla mı oldu? TCK 129 ve 29'u kullanın.<br>
+                    <strong>2. Etkin Pişmanlık:</strong> Maddi bir zarar varsa (hırsızlık/dolandırıcılık), zararı karşılayarak ceza indirimi talep edin.<br>
+                    <strong>3. Uzlaşma:</strong> Dosyayı adliyeye gitmeden uzlaştırmacı aracılığıyla kapatmaya çalışın.
+                </div>
+            </div>`;
+        }
+
+        if(html === "") html = "<div class='card'>🔍 Belge içeriğinde net bir hukuk dalı saptanamadı. Lütfen daha net bir belge yükleyin.</div>";
+        document.getElementById("result").innerHTML = html;
     }
 </script>
 </body>
