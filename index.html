@@ -1,25 +1,143 @@
-/* --- CEZA HUKUKU ANALİZİ (Yeni Modül) --- */
-if(text.includes("müşteki") || text.includes("şüpheli") || text.includes("savcılık") || text.includes("suç duyurusu")) {
-    findings++;
-    let localRisk = 60; // Ceza dosyaları hürriyeti bağladığı için risk yüksektir
-    
-    let sucTipi = "";
-    if(text.includes("hakaret")) { sucTipi = "Hakaret (TCK 125)"; localRisk += 5; }
-    if(text.includes("tehdit")) { sucTipi = "Tehdit (TCK 106)"; localRisk += 10; }
-    if(text.includes("dolandırıcılık")) { sucTipi = "Dolandırıcılık (TCK 157)"; localRisk += 20; }
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dava Güvende AI - V5.1 Ceza Modüllü</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --success: #27ae60;
+            --purple: #8e44ad;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 40px; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .upload-section { background: #f8f9fa; border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+        button { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        #result { margin-top: 30px; }
+        .card { border-left: 5px solid var(--accent); background: #fff; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 5px; }
+        
+        /* Renk Sınıfları */
+        .high { border-color: var(--danger); }
+        .medium { border-color: var(--warning); }
+        .criminal { border-color: var(--purple); }
+        
+        .risk-bar-container { background: #eee; height: 20px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .risk-bar { height: 100%; transition: width 0.5s ease-in-out; }
+        .anayasa-item { background: #fdfdfd; border: 1px solid #eee; padding: 10px; margin-top: 8px; border-left: 3px solid var(--primary); font-size: 0.9em; }
+    </style>
+</head>
+<body>
 
-    totalRisk += localRisk;
+<div class="container">
+    <h2>⚖️ Dava Güvende AI <small>v5.1 (Ceza Modülü Aktif)</small></h2>
+    <div class="upload-section">
+        <input type="file" id="pdfFile" accept=".pdf">
+        <button onclick="analyzePDF()">Analiz Et</button>
+    </div>
+    <div id="result"></div>
+</div>
 
-    html += `
-        <div class="card high" style="border-left-color: #8e44ad;">
-            <h3 style="color:#8e44ad">⚖️ Ceza Hukuku Dosyası Tespiti</h3>
-            <p><strong>Tespit Edilen Olası Suç:</strong> ${sucTipi || "Genel Suç Duyurusu"}</p>
-            <span class="section-title">Kritik Uyarılar:</span>
-            <ul>
-                <li>Şikayete tabi suçlarda 6 aylık hak düşürücü süreye dikkat edilmelidir.</li>
-                <li>Dosyanın "Uzlaştırma" kapsamında olup olmadığını kontrol edin.</li>
-                <li>İfade verme sürecinde mutlaka müdafi (avukat) yardımı talep edin.</li>
-            </ul>
-        </div>`;
-    [2, 10, 36, 38].forEach(k => anayasaKeys.add(k)); // 38. Madde: Suç ve Cezalara İlişkin Esaslar
-}
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    async function analyzePDF() {
+        const file = document.getElementById("pdfFile").files[0];
+        if(!file) { alert("Lütfen PDF seçin."); return; }
+        document.getElementById("result").innerHTML = "⌛ Analiz ediliyor...";
+
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const typedarray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let fullText = "";
+            for(let i=1; i<=pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                fullText += content.items.map(item => item.str.toLowerCase()).join(" ") + " ";
+            }
+            renderAnalysis(fullText);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function renderAnalysis(text) {
+        let html = "";
+        let totalRisk = 0;
+        let anayasaKeys = new Set();
+        let found = false;
+
+        // 1. İCRA MODÜLÜ
+        if(text.includes("icra") || text.includes("haciz") || text.includes("ödeme emri")) {
+            found = true;
+            totalRisk += 50;
+            html += `<div class="card high"><h3>🔴 İcra Analizi</h3>
+                    <p>Mali risk tespit edildi. 7 günlük itiraz süresi kritiktir.</p></div>`;
+            [2, 35, 36].forEach(k => anayasaKeys.add(k));
+        }
+
+        // 2. İŞ MODÜLÜ
+        if(text.includes("kıdem") || text.includes("ihbar") || text.includes("mesai")) {
+            found = true;
+            totalRisk += 40;
+            html += `<div class="card medium"><h3>🟠 İş Hukuku Analizi</h3>
+                    <p>İşçi alacağı veya tazminat konusu saptandı. Arabuluculuk sürecini kontrol edin.</p></div>`;
+            [49, 55].forEach(k => anayasaKeys.add(k));
+        }
+
+        // 3. CEZA MODÜLÜ (YENİ)
+        if(text.includes("şüpheli") || text.includes("savcılık") || text.includes("iddianame") || text.includes("hakaret") || text.includes("tehdit")) {
+            found = true;
+            totalRisk += 65;
+            let suc = text.includes("hakaret") ? "Hakaret" : (text.includes("tehdit") ? "Tehdit" : "Belirtilmemiş Suç");
+            
+            html += `
+                <div class="card criminal">
+                    <h3 style="color:var(--purple)">⚖️ Ceza Hukuku Analizi</h3>
+                    <p><strong>Olası Suç Türü:</strong> ${suc}</p>
+                    <ul>
+                        <li>Savcılık soruşturması veya ceza davası riski.</li>
+                        <li>Uzlaşma teklifi gelip gelmediğini kontrol edin.</li>
+                        <li>Sabıka kaydı (adli sicil) etkilenme riski yüksektir.</li>
+                    </ul>
+                </div>`;
+            [10, 36, 38].forEach(k => anayasaKeys.add(k));
+        }
+
+        if(!found) {
+            html = "<div class='card'>🔍 Belge içeriği analiz edilemedi. Farklı bir belge deneyin.</div>";
+        } else {
+            const finalScore = Math.min(totalRisk, 100);
+            const color = finalScore > 70 ? 'var(--danger)' : (finalScore > 40 ? 'var(--warning)' : 'var(--success)');
+            
+            let header = `<div class="card"><strong>Toplam Risk Skoru: %${finalScore}</strong>
+                          <div class="risk-bar-container"><div class="risk-bar" style="width:${finalScore}%; background:${color}"></div></div></div>`;
+            
+            let anayasaHtml = "<div class='card'><h3>📖 Anayasal Dayanaklar</h3>";
+            anayasaKeys.forEach(key => { anayasaHtml += `<div class="anayasa-item">${getAnayasaDetail(key)}</div>`; });
+            anayasaHtml += "</div>";
+
+            html = header + html + anayasaHtml;
+        }
+        document.getElementById("result").innerHTML = html;
+    }
+
+    function getAnayasaDetail(m) {
+        const maddeler = {
+            "2": "<strong>Madde 2:</strong> Hukuk Devleti ilkesi.",
+            "10": "<strong>Madde 10:</strong> Kanun önünde eşitlik.",
+            "35": "<strong>Madde 35:</strong> Mülkiyet hakkı.",
+            "36": "<strong>Madde 36:</strong> Hak arama özgürlüğü ve adil yargılanma.",
+            "38": "<strong>Madde 38:</strong> Suç ve cezaların kanuniliği ilkesi (Ceza Hukuku).",
+            "49": "<strong>Madde 49:</strong> Çalışma hakkı ve ödevi.",
+            "55": "<strong>Madde 55:</strong> Ücrette adalet sağlanması."
+        };
+        return maddeler[m] || `Madde ${m}`;
+    }
+</script>
+</body>
+</html>
